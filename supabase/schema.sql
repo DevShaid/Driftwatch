@@ -1,7 +1,4 @@
--- DriftWatch Database Schema
--- Run this in your Supabase SQL editor
 
--- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
 -- Organizations
