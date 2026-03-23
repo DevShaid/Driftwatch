@@ -147,10 +147,12 @@ const Btn = ({ children, variant = "primary", onClick, disabled, style = {}, siz
   );
 };
 
-const Input = ({ label, placeholder, value, onChange, type = "text", monospace, helper, error }) => (
+const Input = ({ label, id, placeholder, value, onChange, type = "text", monospace, helper, error }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-    {label && <label style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{label}</label>}
+    {label && <label htmlFor={id} style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{label}</label>}
     <input
+      id={id}
+      name={id}
       type={type}
       placeholder={placeholder}
       value={value}
@@ -169,10 +171,12 @@ const Input = ({ label, placeholder, value, onChange, type = "text", monospace, 
   </div>
 );
 
-const SelectInput = ({ label, value, onChange, options }) => (
+const SelectInput = ({ label, id, value, onChange, options }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-    {label && <label style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{label}</label>}
+    {label && <label htmlFor={id} style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{label}</label>}
     <select
+      id={id}
+      name={id}
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #d1d5db", background: "#fff", color: "#111827", outline: "none", cursor: "pointer", fontSize: 13 }}
@@ -248,6 +252,97 @@ const DiffView = ({ expected, actual }) => {
   );
 };
 
+const AuthPage = ({ onAuth }) => {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [company, setCompany] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const submit = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { company_name: company } },
+        });
+        if (error) throw error;
+        if (data.user && !data.session) {
+          setSuccess("Check your email to confirm your account, then sign in.");
+        } else if (data.session) {
+          onAuth(data.session, true);
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onAuth(data.session, false);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f9fafb", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, justifyContent: "center" }}>
+          <div style={{ width: 32, height: 32, borderRadius: 7, background: "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16 }}>D</div>
+          <span style={{ fontWeight: 700, fontSize: 18, color: "#111827" }}>DriftWatch</span>
+        </div>
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid #f3f4f6" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>
+              {mode === "signin" ? "Sign in to your account" : "Create your account"}
+            </div>
+            <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>
+              {mode === "signin" ? "Welcome back" : "Start your 14-day free trial"}
+            </div>
+          </div>
+          <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+            {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+            {success && (
+              <div style={{ padding: "10px 14px", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 6, fontSize: 12, color: "#059669" }}>
+                ✓ {success}
+              </div>
+            )}
+            {mode === "signup" && (
+              <Input id="company" label="Company name" placeholder="Acme Corp" value={company} onChange={setCompany} />
+            )}
+            <Input id="email" label="Email" type="email" placeholder="you@company.com" value={email} onChange={setEmail} />
+            <Input id="password" label="Password" type="password" placeholder={mode === "signup" ? "Min 6 characters" : "••••••••"} value={password} onChange={setPassword} />
+            <Btn
+              variant="primary"
+              onClick={submit}
+              disabled={loading || !email || !password || (mode === "signup" && !company)}
+              style={{ width: "100%", justifyContent: "center", padding: "9px 0" }}
+            >
+              {loading ? <><Spinner size={13} />{mode === "signup" ? "Creating account..." : "Signing in..."}</> : mode === "signin" ? "Sign in" : "Create account"}
+            </Btn>
+          </div>
+          <div style={{ padding: "14px 24px", background: "#f9fafb", borderTop: "1px solid #f3f4f6", textAlign: "center" }}>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>
+              {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+            </span>
+            <button
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setSuccess(null); }}
+              style={{ fontSize: 12, color: "#4f46e5", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
+            >
+              {mode === "signin" ? "Sign up free" : "Sign in"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "▦" },
   { id: "scans",     label: "Scan History", icon: "◷" },
@@ -255,7 +350,7 @@ const NAV_ITEMS = [
   { id: "settings",  label: "Settings", icon: "⊞" },
 ];
 
-const Sidebar = ({ page, setPage, scanning, onScan, lastScan, openDriftCount, org }) => (
+const Sidebar = ({ page, setPage, scanning, onScan, lastScan, openDriftCount, org, onSignOut }) => (
   <aside style={{
     width: 240, flexShrink: 0, height: "100vh", position: "sticky", top: 0,
     background: "#fff", borderRight: "1px solid #e5e7eb",
@@ -319,6 +414,14 @@ const Sidebar = ({ page, setPage, scanning, onScan, lastScan, openDriftCount, or
       <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af", textAlign: "center" }}>
         {lastScan ? `Last scan: ${fmt.relative(lastScan.started_at)}` : "No scans yet"}
       </div>
+      <button
+        onClick={onSignOut}
+        style={{ width: "100%", marginTop: 8, padding: "6px", background: "none", border: "none", fontSize: 11, color: "#9ca3af", cursor: "pointer", textAlign: "center" }}
+        onMouseEnter={e => e.currentTarget.style.color = "#dc2626"}
+        onMouseLeave={e => e.currentTarget.style.color = "#9ca3af"}
+      >
+        Sign out
+      </button>
     </div>
   </aside>
 );
@@ -512,7 +615,7 @@ const ScansTable = ({ scans, loading, compact }) => {
   );
 };
 
-const DashboardPage = ({ orgId, onRunScan, scanning, setPage }) => {
+const DashboardPage = ({ orgId, scanning, setPage }) => {
   const [scans, setScans] = useState([]);
   const [drift, setDrift] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -545,17 +648,15 @@ const DashboardPage = ({ orgId, onRunScan, scanning, setPage }) => {
   const critical = drift.filter(d => d.severity === "critical");
   const warning  = drift.filter(d => d.severity === "warning");
   const info     = drift.filter(d => d.severity === "info");
-
-  const totalScans = scans.length;
-  const successRate = totalScans > 0
-    ? Math.round((scans.filter(s => s.status === "completed").length / totalScans) * 100)
+  const successRate = scans.length > 0
+    ? Math.round((scans.filter(s => s.status === "completed").length / scans.length) * 100)
     : null;
 
   return (
     <div className="fadeIn">
       <PageHeader
         title="Dashboard"
-        subtitle={latestScan ? `Last scan ${fmt.relative(latestScan.started_at)} · ${latestScan.resources_checked} resources checked` : "No scans yet"}
+        subtitle={latestScan ? `Last scan ${fmt.relative(latestScan.started_at)} · ${latestScan.resources_checked} resources checked` : "No scans yet — run your first scan to get started"}
         right={latestScan && <StatusBadge status={latestScan.status} />}
       />
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
@@ -563,7 +664,7 @@ const DashboardPage = ({ orgId, onRunScan, scanning, setPage }) => {
         <StatCard label="Resources Tracked" value={latestScan?.resources_checked ?? "—"} sub="latest scan" loading={loading} />
         <StatCard label="Open Drift Items" value={drift.length} sub="unresolved" accent={drift.length > 0 ? "#d97706" : "#059669"} loading={loading} />
         <StatCard label="Critical" value={critical.length} sub="requires action" accent={critical.length > 0 ? "#dc2626" : "#059669"} loading={loading} />
-        <StatCard label="Scan Success Rate" value={successRate !== null ? `${successRate}%` : "—"} sub="last 10 scans" accent={successRate >= 80 ? "#059669" : "#d97706"} loading={loading} />
+        <StatCard label="Scan Success Rate" value={successRate !== null ? `${successRate}%` : "—"} sub="last 10 scans" accent={successRate !== null && successRate >= 80 ? "#059669" : "#d97706"} loading={loading} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
         {[
@@ -628,13 +729,11 @@ const ScansPage = ({ orgId }) => {
       <PageHeader
         title="Scan History"
         subtitle="All infrastructure scans — expand rows to view drift details"
-        right={
-          <SelectInput value={range} onChange={setRange} options={[
-            { value: "7", label: "Last 7 days" },
-            { value: "30", label: "Last 30 days" },
-            { value: "90", label: "Last 90 days" },
-          ]} />
-        }
+        right={<SelectInput id="range" value={range} onChange={setRange} options={[
+          { value: "7", label: "Last 7 days" },
+          { value: "30", label: "Last 30 days" },
+          { value: "90", label: "Last 90 days" },
+        ]} />}
       />
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
@@ -711,14 +810,14 @@ const DriftPage = ({ orgId }) => {
             </button>
           );
         })}
-        <SelectInput value={typeFilter} onChange={setTypeFilter} options={[
+        <SelectInput id="typeFilter" value={typeFilter} onChange={setTypeFilter} options={[
           { value: "all", label: "All types" },
           { value: "MISSING", label: "Missing" },
           { value: "UNMANAGED", label: "Unmanaged" },
           { value: "DRIFTED", label: "Drifted" },
         ]} />
         {resourceTypes.length > 0 && (
-          <SelectInput value="all" onChange={() => {}} options={[
+          <SelectInput id="resourceType" value="all" onChange={() => {}} options={[
             { value: "all", label: "All resource types" },
             ...resourceTypes.map(t => ({ value: t, label: t })),
           ]} />
@@ -825,13 +924,12 @@ const SettingsPage = ({ orgId, org }) => {
 };
 
 const SettingsAWS = ({ orgId, conn, onSave, onError }) => {
-  const [authMode, setAuthMode] = useState(conn?.auth_mode || "role");
-  const [roleArn, setRoleArn] = useState(conn?.role_arn || "");
+  const [authMode, setAuthMode] = useState("role");
+  const [roleArn, setRoleArn] = useState("");
   const [accessKey, setAccessKey] = useState("");
   const [secretKey, setSecretKey] = useState("");
-  const [region, setRegion] = useState(conn?.region || "us-east-1");
+  const [region, setRegion] = useState("us-east-1");
   const [verifying, setVerifying] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (conn) { setAuthMode(conn.auth_mode || "role"); setRoleArn(conn.role_arn || ""); setRegion(conn.region || "us-east-1"); }
@@ -863,7 +961,7 @@ const SettingsAWS = ({ orgId, conn, onSave, onError }) => {
         <>
           <ConnectedBadge connected={!!conn?.verified_at} />
           <Btn variant="primary" onClick={verify} disabled={verifying}>
-            {verifying ? <><Spinner size={12} />Verifying & saving...</> : conn?.verified_at ? "Re-verify connection" : "Verify & save"}
+            {verifying ? <><Spinner size={12} />Verifying...</> : conn?.verified_at ? "Re-verify" : "Verify & save"}
           </Btn>
         </>
       }
@@ -881,7 +979,7 @@ const SettingsAWS = ({ orgId, conn, onSave, onError }) => {
       </div>
       {authMode === "role" ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <Input label="IAM Role ARN" value={roleArn} onChange={setRoleArn} monospace placeholder="arn:aws:iam::123456789012:role/DriftWatchRole" />
+          <Input id="roleArn" label="IAM Role ARN" value={roleArn} onChange={setRoleArn} monospace placeholder="arn:aws:iam::123456789012:role/DriftWatchRole" />
           <div style={{ padding: "10px 12px", background: "#f8f9fa", border: "1px solid #e5e7eb", borderRadius: 6 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Required IAM permissions</div>
             <code style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.8, display: "block" }}>
@@ -892,15 +990,15 @@ const SettingsAWS = ({ orgId, conn, onSave, onError }) => {
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          <Input label="Access Key ID" monospace placeholder="AKIAIOSFODNN7EXAMPLE" value={accessKey} onChange={setAccessKey} />
-          <Input label="Secret Access Key" type="password" monospace placeholder="••••••••••••••••••••••••••••••••••••••••" value={secretKey} onChange={setSecretKey} />
+          <Input id="accessKey" label="Access Key ID" monospace placeholder="AKIAIOSFODNN7EXAMPLE" value={accessKey} onChange={setAccessKey} />
+          <Input id="secretKey" label="Secret Access Key" type="password" monospace placeholder="••••••••••••••••••••••••••••••••••••••••" value={secretKey} onChange={setSecretKey} />
           <div style={{ padding: "8px 10px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 5, fontSize: 11, color: "#92400e" }}>
             ⚠ Credentials are encrypted with AES-256-GCM before storage. IAM roles are recommended for production.
           </div>
         </div>
       )}
       <div style={{ marginTop: 12 }}>
-        <SelectInput label="AWS Region" value={region} onChange={setRegion} options={[
+        <SelectInput id="awsRegion" label="AWS Region" value={region} onChange={setRegion} options={[
           { value: "us-east-1", label: "us-east-1 (N. Virginia)" },
           { value: "us-west-2", label: "us-west-2 (Oregon)" },
           { value: "eu-west-1", label: "eu-west-1 (Ireland)" },
@@ -914,9 +1012,9 @@ const SettingsAWS = ({ orgId, conn, onSave, onError }) => {
 };
 
 const SettingsState = ({ orgId, backend, onSave, onError }) => {
-  const [bucket, setBucket] = useState(backend?.bucket || "");
-  const [key, setKey] = useState(backend?.key || "");
-  const [region, setRegion] = useState(backend?.region || "us-east-1");
+  const [bucket, setBucket] = useState("");
+  const [key, setKey] = useState("");
+  const [region, setRegion] = useState("us-east-1");
   const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
@@ -955,9 +1053,9 @@ const SettingsState = ({ orgId, backend, onSave, onError }) => {
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
-        <Input label="S3 Bucket Name" value={bucket} onChange={setBucket} monospace placeholder="my-terraform-state-bucket" />
-        <Input label="State File Key" value={key} onChange={setKey} monospace placeholder="prod/terraform.tfstate" helper="Relative path to the .tfstate file within the bucket" />
-        <SelectInput label="Bucket Region" value={region} onChange={setRegion} options={[
+        <Input id="bucket" label="S3 Bucket Name" value={bucket} onChange={setBucket} monospace placeholder="my-terraform-state-bucket" />
+        <Input id="stateKey" label="State File Key" value={key} onChange={setKey} monospace placeholder="prod/terraform.tfstate" helper="Relative path to the .tfstate file within the bucket" />
+        <SelectInput id="stateRegion" label="Bucket Region" value={region} onChange={setRegion} options={[
           { value: "us-east-1", label: "us-east-1" },
           { value: "us-west-2", label: "us-west-2" },
           { value: "eu-west-1", label: "eu-west-1" },
@@ -971,8 +1069,10 @@ const SettingsState = ({ orgId, backend, onSave, onError }) => {
 
 const SettingsSlack = ({ orgId, conn, onSave, onError }) => {
   const [webhook, setWebhook] = useState("");
-  const [channel, setChannel] = useState(conn?.channel || "");
+  const [channel, setChannel] = useState("");
   const [verifying, setVerifying] = useState(false);
+
+  useEffect(() => { if (conn) setChannel(conn.channel || ""); }, [conn]);
 
   const verify = async () => {
     setVerifying(true);
@@ -1006,8 +1106,8 @@ const SettingsSlack = ({ orgId, conn, onSave, onError }) => {
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
-        <Input label="Webhook URL" value={webhook} onChange={setWebhook} monospace type="password" placeholder="https://hooks.slack.com/services/..." />
-        <Input label="Channel" value={channel} onChange={setChannel} placeholder="#infra-alerts" helper="Optional — for display purposes only" />
+        <Input id="webhookUrl" label="Webhook URL" value={webhook} onChange={setWebhook} monospace type="password" placeholder="https://hooks.slack.com/services/..." />
+        <Input id="slackChannel" label="Channel" value={channel} onChange={setChannel} placeholder="#infra-alerts" helper="Optional — for display purposes only" />
         <div style={{ padding: "12px", background: "#0d1117", border: "1px solid #21262d", borderRadius: 6 }}>
           <div style={{ fontSize: 10, color: "#8b949e", fontFamily: "monospace", marginBottom: 8 }}>MESSAGE FORMAT PREVIEW</div>
           <div style={{ fontFamily: "monospace", fontSize: 11, color: "#e6edf3", lineHeight: 1.8 }}>
@@ -1024,7 +1124,7 @@ const SettingsSlack = ({ orgId, conn, onSave, onError }) => {
 };
 
 const SettingsSchedule = ({ orgId, org, onSave, onError }) => {
-  const [freq, setFreq] = useState(org?.scan_schedule || "24h");
+  const [freq, setFreq] = useState("24h");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (org?.scan_schedule) setFreq(org.scan_schedule); }, [org]);
@@ -1045,8 +1145,8 @@ const SettingsSchedule = ({ orgId, org, onSave, onError }) => {
   const freqs = [
     { value: "1h",     label: "Every hour",    plan: "Pro" },
     { value: "6h",     label: "Every 6 hours", plan: "Pro" },
-    { value: "24h",    label: "Daily",          plan: "Starter" },
-    { value: "manual", label: "Manual only",    plan: "Starter" },
+    { value: "24h",    label: "Daily",         plan: "Starter" },
+    { value: "manual", label: "Manual only",   plan: "Starter" },
   ];
 
   return (
@@ -1055,7 +1155,7 @@ const SettingsSchedule = ({ orgId, org, onSave, onError }) => {
       desc="How often DriftWatch checks your infrastructure against Terraform state."
       action={
         <>
-          <span style={{ fontSize: 12, color: "#9ca3af" }}>Scans run at the top of each interval (UTC)</span>
+          <span style={{ fontSize: 12, color: "#9ca3af" }}>Scans run at 06:00 UTC daily</span>
           <Btn variant="primary" onClick={save} disabled={saving}>
             {saving ? <><Spinner size={12} />Saving...</> : "Save schedule"}
           </Btn>
@@ -1072,7 +1172,7 @@ const SettingsSchedule = ({ orgId, org, onSave, onError }) => {
             cursor: "pointer",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <input type="radio" checked={freq === f.value} onChange={() => setFreq(f.value)} style={{ accentColor: "#4f46e5" }} />
+              <input type="radio" name="freq" checked={freq === f.value} onChange={() => setFreq(f.value)} style={{ accentColor: "#4f46e5" }} />
               <span style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{f.label}</span>
             </div>
             <span style={{ fontSize: 11, color: "#9ca3af" }}>{f.plan} plan+</span>
@@ -1214,9 +1314,9 @@ const OnboardingPage = ({ onComplete, orgId }) => {
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
           {step === 0 && (
             <OnboardStep title="Connect AWS Account" desc="Grant DriftWatch read-only access to your AWS account via an IAM role." onVerify={() => verifyStep(0)} verified={verified[0]} verifying={verifying} onNext={() => setStep(1)}>
-              <Input label="IAM Role ARN" monospace placeholder="arn:aws:iam::123456789012:role/DriftWatchRole" value={stepData.roleArn} onChange={v => setStepData(d => ({ ...d, roleArn: v }))} helper="Create a role with the permissions listed in README.md" />
+              <Input id="onboardRoleArn" label="IAM Role ARN" monospace placeholder="arn:aws:iam::123456789012:role/DriftWatchRole" value={stepData.roleArn} onChange={v => setStepData(d => ({ ...d, roleArn: v }))} helper="Create a role with the required read-only permissions" />
               <div style={{ marginTop: 10 }}>
-                <SelectInput label="Primary Region" value={stepData.region} onChange={v => setStepData(d => ({ ...d, region: v }))} options={[
+                <SelectInput id="onboardRegion" label="Primary Region" value={stepData.region} onChange={v => setStepData(d => ({ ...d, region: v }))} options={[
                   { value: "us-east-1", label: "us-east-1 (N. Virginia)" },
                   { value: "us-west-2", label: "us-west-2 (Oregon)" },
                   { value: "eu-west-1", label: "eu-west-1 (Ireland)" },
@@ -1227,17 +1327,17 @@ const OnboardingPage = ({ onComplete, orgId }) => {
           )}
           {step === 1 && (
             <OnboardStep title="Connect Terraform State" desc="Point DriftWatch to your Terraform state file in S3." onVerify={() => verifyStep(1)} verified={verified[1]} verifying={verifying} onNext={() => setStep(2)}>
-              <Input label="S3 Bucket" monospace placeholder="my-terraform-state" value={stepData.bucket} onChange={v => setStepData(d => ({ ...d, bucket: v }))} />
+              <Input id="onboardBucket" label="S3 Bucket" monospace placeholder="my-terraform-state" value={stepData.bucket} onChange={v => setStepData(d => ({ ...d, bucket: v }))} />
               <div style={{ marginTop: 10 }}>
-                <Input label="State File Key" monospace placeholder="prod/terraform.tfstate" value={stepData.key} onChange={v => setStepData(d => ({ ...d, key: v }))} helper="Path to the .tfstate file within the bucket" />
+                <Input id="onboardKey" label="State File Key" monospace placeholder="prod/terraform.tfstate" value={stepData.key} onChange={v => setStepData(d => ({ ...d, key: v }))} helper="Path to the .tfstate file within the bucket" />
               </div>
             </OnboardStep>
           )}
           {step === 2 && (
             <OnboardStep title="Connect Slack" desc="Get drift alerts delivered to your team's Slack channel." onVerify={() => verifyStep(2)} verified={verified[2]} verifying={verifying} onNext={() => setStep(3)} nextLabel="Run first scan →">
-              <Input label="Incoming Webhook URL" monospace type="password" placeholder="https://hooks.slack.com/services/..." value={stepData.webhook} onChange={v => setStepData(d => ({ ...d, webhook: v }))} />
+              <Input id="onboardWebhook" label="Incoming Webhook URL" monospace type="password" placeholder="https://hooks.slack.com/services/..." value={stepData.webhook} onChange={v => setStepData(d => ({ ...d, webhook: v }))} />
               <div style={{ marginTop: 10 }}>
-                <Input label="Channel" placeholder="#infra-alerts" value={stepData.channel} onChange={v => setStepData(d => ({ ...d, channel: v }))} />
+                <Input id="onboardChannel" label="Channel" placeholder="#infra-alerts" value={stepData.channel} onChange={v => setStepData(d => ({ ...d, channel: v }))} />
               </div>
             </OnboardStep>
           )}
@@ -1274,7 +1374,7 @@ const OnboardStep = ({ title, desc, children, onVerify, verified, verifying, onN
       <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{title}</div>
       <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>{desc}</div>
     </div>
-    <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 0 }}>{children}</div>
+    <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>{children}</div>
     <div style={{ padding: "14px 24px", background: "#f9fafb", borderTop: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Btn variant="secondary" onClick={onVerify} disabled={verifying}>
@@ -1287,7 +1387,7 @@ const OnboardStep = ({ title, desc, children, onVerify, verified, verifying, onN
   </div>
 );
 
-const LandingPage = ({ onGetStarted, onLogin }) => (
+const LandingPage = ({ onGetStarted, onSignIn }) => (
   <div style={{ minHeight: "100vh", background: "#fff" }}>
     <nav style={{ borderBottom: "1px solid #e5e7eb", padding: "0 48px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(8px)", zIndex: 100 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1298,7 +1398,7 @@ const LandingPage = ({ onGetStarted, onLogin }) => (
         {["Product", "Pricing", "Docs"].map(l => (
           <span key={l} style={{ fontSize: 13, color: "#6b7280", cursor: "pointer", fontWeight: 500 }}>{l}</span>
         ))}
-        <Btn variant="secondary" size="sm" onClick={onLogin}>Sign in</Btn>
+        <Btn variant="secondary" size="sm" onClick={onSignIn}>Sign in</Btn>
         <Btn variant="primary" size="sm" onClick={onGetStarted}>Get started free</Btn>
       </div>
     </nav>
@@ -1326,10 +1426,10 @@ const LandingPage = ({ onGetStarted, onLogin }) => (
         <h2 style={{ fontSize: 28, fontWeight: 800, color: "#111827", letterSpacing: "-0.02em", marginBottom: 48 }}>Four steps, zero guesswork.</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
           {[
-            { n: "01", title: "Connect AWS", body: "Provide an IAM role ARN. DriftWatch assumes it to read your live infrastructure." },
-            { n: "02", title: "Point to state", body: "Tell us your S3 bucket and key. We parse the .tfstate JSON directly." },
-            { n: "03", title: "Scheduled scans", body: "On your cadence — hourly, daily, or via API — we diff state vs reality." },
-            { n: "04", title: "Alert your team", body: "Severity-labeled drift delivered to Slack within seconds of detection." },
+            { n: "01", title: "Sign up", body: "Create your account. Your organization is provisioned automatically." },
+            { n: "02", title: "Connect AWS", body: "Provide a read-only IAM role. DriftWatch never modifies your infrastructure." },
+            { n: "03", title: "Point to state", body: "Tell us your S3 bucket and Terraform state key. We parse it directly." },
+            { n: "04", title: "Get alerted", body: "Severity-labeled drift delivered to Slack within seconds of detection." },
           ].map(s => (
             <div key={s.n} style={{ textAlign: "left" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#4f46e5", fontFamily: "monospace", marginBottom: 8 }}>{s.n}</div>
@@ -1394,7 +1494,27 @@ export default function DriftWatch() {
   const [lastScan, setLastScan] = useState(null);
   const [openDriftCount, setOpenDriftCount] = useState(0);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        const { data: orgData } = await supabase.from("organizations").select("*").limit(1).maybeSingle();
+        if (orgData) {
+          setOrg(orgData);
+          setOrgId(orgData.id);
+          const hasConnections = await supabase.from("aws_connections").select("id").eq("org_id", orgData.id).maybeSingle();
+          setView(hasConnections.data ? "app" : "onboarding");
+        }
+      } else {
+        setView("landing");
+        setOrg(null);
+        setOrgId(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [mounted]);
 
   useEffect(() => {
     if (view !== "app" || !orgId) return;
@@ -1403,15 +1523,6 @@ export default function DriftWatch() {
     supabase.from("drift_items").select("id", { count: "exact", head: true }).eq("org_id", orgId).is("resolved_at", null)
       .then(({ count }) => { setOpenDriftCount(count || 0); });
   }, [view, orgId, scanning]);
-
-  useEffect(() => {
-    if (view !== "app") return;
-    if (!orgId) {
-      supabase.from("organizations").select("*").limit(1).maybeSingle().then(({ data }) => {
-        if (data) { setOrg(data); setOrgId(data.id); }
-      });
-    }
-  }, [view, orgId]);
 
   const runScan = async () => {
     if (scanning || !orgId) return;
@@ -1431,19 +1542,46 @@ export default function DriftWatch() {
     }
   };
 
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setView("landing");
+    setOrg(null);
+    setOrgId(null);
+    setLastScan(null);
+    setOpenDriftCount(0);
+  };
+
   if (!mounted) return null;
 
   if (view === "landing") {
     return (
       <>
         <style>{FONTS}{css}</style>
-        <LandingPage onGetStarted={() => setView("onboarding")} onLogin={() => setView("app")} />
+        <LandingPage onGetStarted={() => setView("auth")} onSignIn={() => setView("auth")} />
+      </>
+    );
+  }
+
+  if (view === "auth") {
+    return (
+      <>
+        <style>{FONTS}{css}</style>
+        <AuthPage onAuth={async (session, isNew) => {
+          const { data: orgData } = await supabase.from("organizations").select("*").limit(1).maybeSingle();
+          if (orgData) {
+            setOrg(orgData);
+            setOrgId(orgData.id);
+            const hasConnections = await supabase.from("aws_connections").select("id").eq("org_id", orgData.id).maybeSingle();
+            setView(isNew || !hasConnections.data ? "onboarding" : "app");
+          } else {
+            setView("onboarding");
+          }
+        }} />
       </>
     );
   }
 
   if (view === "onboarding") {
- 
     return (
       <>
         <style>{FONTS}{css}</style>
@@ -1456,7 +1594,7 @@ export default function DriftWatch() {
     <>
       <style>{FONTS}{css}</style>
       <div style={{ display: "flex", minHeight: "100vh", background: "#f9fafb" }}>
-        <Sidebar page={page} setPage={setPage} scanning={scanning} onScan={runScan} lastScan={lastScan} openDriftCount={openDriftCount} org={org} />
+        <Sidebar page={page} setPage={setPage} scanning={scanning} onScan={runScan} lastScan={lastScan} openDriftCount={openDriftCount} org={org} onSignOut={signOut} />
         <main style={{ flex: 1, padding: 24, overflowX: "hidden", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #f3f4f6" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1466,13 +1604,7 @@ export default function DriftWatch() {
               </div>
             </div>
           </div>
-          {!orgId && (
-            <div style={{ padding: "40px 24px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
-              <div style={{ marginBottom: 12, fontSize: 24 }}>⚙</div>
-              No organization found. Make sure you've run the database schema and have an org record in Supabase.
-            </div>
-          )}
-          {orgId && page === "dashboard" && <DashboardPage orgId={orgId} scanning={scanning} onRunScan={runScan} setPage={setPage} />}
+          {orgId && page === "dashboard" && <DashboardPage orgId={orgId} scanning={scanning} setPage={setPage} />}
           {orgId && page === "scans" && <ScansPage orgId={orgId} />}
           {orgId && page === "drift" && <DriftPage orgId={orgId} />}
           {orgId && page === "settings" && <SettingsPage orgId={orgId} org={org} />}
