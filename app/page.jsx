@@ -1432,6 +1432,8 @@ export default function DriftWatch() {
     }
   };
 
+  if (!mounted) return null;
+
   if (view === "landing") {
     return (
       <>
@@ -1442,6 +1444,7 @@ export default function DriftWatch() {
   }
 
   if (view === "onboarding") {
+ 
     return (
       <>
         <style>{FONTS}{css}</style>
