@@ -1,0 +1,31 @@
+{
+  "name": "driftwatch",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18",
+    "@supabase/supabase-js": "^2.43.0",
+    "@aws-sdk/client-sts": "^3.583.0",
+    "@aws-sdk/client-ec2": "^3.583.0",
+    "@aws-sdk/client-rds": "^3.583.0",
+    "@aws-sdk/client-s3": "^3.583.0",
+    "@aws-sdk/client-lambda": "^3.583.0",
+    "@aws-sdk/client-ecs": "^3.583.0",
+    "@aws-sdk/client-iam": "^3.583.0",
+    "stripe": "^15.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5"
+  }
+}
