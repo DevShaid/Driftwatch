@@ -1385,6 +1385,7 @@ const LandingPage = ({ onGetStarted, onLogin }) => (
 );
 
 export default function DriftWatch() {
+  const [mounted, setMounted] = useState(false);
   const [view, setView] = useState("landing");
   const [page, setPage] = useState("dashboard");
   const [org, setOrg] = useState(null);
@@ -1392,6 +1393,9 @@ export default function DriftWatch() {
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState(null);
   const [openDriftCount, setOpenDriftCount] = useState(0);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
 
   useEffect(() => {
     if (view !== "app" || !orgId) return;
