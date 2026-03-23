@@ -7,6 +7,7 @@ import { detectMissingResources, detectUnmanagedResources, detectConfigDrift } f
 import { sendSlackAlert } from '@/lib/slack'
 import type { DriftResult } from '@/types'
 
+export const maxDuration = 60 
 export async function POST(req: NextRequest) {
   if (!rateLimit(req, 10, 60_000)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
