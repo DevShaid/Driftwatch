@@ -259,24 +259,20 @@ const AuthPage = ({ onAuth }) => {
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
 
   const submit = async () => {
     setError(null);
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+        const { error } = await supabase.auth.signUp({
+          email, password,
           options: { data: { company_name: company } },
         });
         if (error) throw error;
-        if (data.user && !data.session) {
-          setSuccess("Check your email to confirm your account, then sign in.");
-        } else if (data.session) {
-          onAuth(data.session, true);
-        }
+        setOtpSent(true);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -289,6 +285,88 @@ const AuthPage = ({ onAuth }) => {
     }
   };
 
+  const verifyOtp = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email, token: otp, type: "signup",
+      });
+      if (error) throw error;
+      onAuth(data.session, true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (otpSent) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f9fafb", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 400 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 7, background: "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16 }}>D</div>
+            <span style={{ fontWeight: 700, fontSize: 18, color: "#111827" }}>DriftWatch</span>
+          </div>
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ background: "#4f46e5", height: 4 }} />
+            <div style={{ padding: "32px 28px" }}>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ fontSize: 28, marginBottom: 12 }}>📬</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 6 }}>Check your email</div>
+                <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6 }}>
+                  We sent a 6-digit code to<br />
+                  <strong style={{ color: "#374151" }}>{email}</strong>
+                </div>
+              </div>
+              {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+              <div style={{ marginBottom: 16 }}>
+                <label htmlFor="otp" style={{ fontSize: 12, fontWeight: 500, color: "#374151", display: "block", marginBottom: 8 }}>Verification code</label>
+                <input
+                  id="otp"
+                  name="otp"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000000"
+                  value={otp}
+                  maxLength={6}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, ""))}
+                  autoFocus
+                  style={{
+                    width: "100%", padding: "14px 16px", borderRadius: 8,
+                    fontSize: 36, fontWeight: 700, letterSpacing: 14,
+                    textAlign: "center", border: "1px solid #d1d5db",
+                    background: "#fff", color: "#4f46e5", outline: "none",
+                    fontFamily: "'JetBrains Mono', monospace", boxSizing: "border-box",
+                  }}
+                  onFocus={e => { e.target.style.borderColor = "#4f46e5"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.08)"; }}
+                  onBlur={e => { e.target.style.borderColor = "#d1d5db"; e.target.style.boxShadow = "none"; }}
+                />
+              </div>
+              <Btn
+                variant="primary"
+                onClick={verifyOtp}
+                disabled={loading || otp.length !== 6}
+                style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}
+              >
+                {loading ? <><Spinner size={13} />Verifying...</> : "Verify & continue →"}
+              </Btn>
+              <div style={{ textAlign: "center", marginTop: 16 }}>
+                <button
+                  onClick={() => { setOtpSent(false); setOtp(""); setError(null); }}
+                  style={{ fontSize: 12, color: "#9ca3af", background: "none", border: "none", cursor: "pointer" }}
+                >
+                  ← Back
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#f9fafb", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
@@ -297,41 +375,37 @@ const AuthPage = ({ onAuth }) => {
           <span style={{ fontWeight: 700, fontSize: 18, color: "#111827" }}>DriftWatch</span>
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid #f3f4f6" }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>
+          <div style={{ background: "#4f46e5", height: 4 }} />
+          <div style={{ padding: "28px 28px 20px" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>
               {mode === "signin" ? "Sign in to your account" : "Create your account"}
             </div>
-            <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>
-              {mode === "signin" ? "Welcome back" : "Start your 14-day free trial"}
+            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 24 }}>
+              {mode === "signin" ? "Welcome back" : "Start your 14-day free trial — no card required"}
+            </div>
+            {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {mode === "signup" && (
+                <Input id="company" label="Company name" placeholder="Acme Corp" value={company} onChange={setCompany} />
+              )}
+              <Input id="email" label="Email" type="email" placeholder="you@company.com" value={email} onChange={setEmail} />
+              <Input id="password" label="Password" type="password" placeholder={mode === "signup" ? "Min 6 characters" : "••••••••"} value={password} onChange={setPassword} />
+              <Btn
+                variant="primary"
+                onClick={submit}
+                disabled={loading || !email || !password || (mode === "signup" && !company)}
+                style={{ width: "100%", justifyContent: "center", padding: "9px 0" }}
+              >
+                {loading ? <><Spinner size={13} />{mode === "signup" ? "Creating account..." : "Signing in..."}</> : mode === "signin" ? "Sign in →" : "Create account →"}
+              </Btn>
             </div>
           </div>
-          <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-            {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
-            {success && (
-              <div style={{ padding: "10px 14px", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 6, fontSize: 12, color: "#059669" }}>
-                ✓ {success}
-              </div>
-            )}
-            {mode === "signup" && (
-              <Input id="company" label="Company name" placeholder="Acme Corp" value={company} onChange={setCompany} />
-            )}
-            <Input id="email" label="Email" type="email" placeholder="you@company.com" value={email} onChange={setEmail} />
-            <Input id="password" label="Password" type="password" placeholder={mode === "signup" ? "Min 6 characters" : "••••••••"} value={password} onChange={setPassword} />
-            <Btn
-              variant="primary"
-              onClick={submit}
-              disabled={loading || !email || !password || (mode === "signup" && !company)}
-              style={{ width: "100%", justifyContent: "center", padding: "9px 0" }}
-            >
-              {loading ? <><Spinner size={13} />{mode === "signup" ? "Creating account..." : "Signing in..."}</> : mode === "signin" ? "Sign in" : "Create account"}
-            </Btn>
-          </div>
-          <div style={{ padding: "14px 24px", background: "#f9fafb", borderTop: "1px solid #f3f4f6", textAlign: "center" }}>
+          <div style={{ padding: "14px 28px", background: "#f9fafb", borderTop: "1px solid #f3f4f6", textAlign: "center" }}>
             <span style={{ fontSize: 12, color: "#6b7280" }}>
               {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
             </span>
             <button
-              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setSuccess(null); }}
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
               style={{ fontSize: 12, color: "#4f46e5", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
             >
               {mode === "signin" ? "Sign up free" : "Sign in"}
