@@ -1395,7 +1395,6 @@ export default function DriftWatch() {
   const [openDriftCount, setOpenDriftCount] = useState(0);
 
   useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
 
   useEffect(() => {
     if (view !== "app" || !orgId) return;
