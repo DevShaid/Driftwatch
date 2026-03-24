@@ -330,7 +330,7 @@ const AuthPage = ({ onAuth }) => {
                   inputMode="numeric"
                   placeholder="000000"
                   value={otp}
-                  maxLength={6}
+                  maxLength={8}
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ""))}
                   autoFocus
                   style={{
@@ -347,7 +347,7 @@ const AuthPage = ({ onAuth }) => {
               <Btn
                 variant="primary"
                 onClick={verifyOtp}
-                disabled={loading || otp.length !== 6}
+                disabled={loading || otp.length !== 8}
                 style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}
               >
                 {loading ? <><Spinner size={13} />Verifying...</> : "Verify & continue →"}
