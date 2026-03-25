@@ -7,7 +7,6 @@ interface RateLimitRecord {
 
 const store = new Map<string, RateLimitRecord>()
 
-// Clean up expired entries every 5 minutes to prevent memory leak
 setInterval(() => {
   const now = Date.now()
   for (const [key, record] of store.entries()) {
