@@ -142,7 +142,6 @@ export async function getS3Buckets(creds: AwsCredentials): Promise<Record<string
       const v = await client.send(new GetBucketVersioningCommand({ Bucket: bucket.Name! }))
       versioning = v.Status || 'Disabled'
     } catch {
-      // bucket may be in a different region — skip versioning check
     }
     buckets.push({
       id:         bucket.Name,
